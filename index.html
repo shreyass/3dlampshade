@@ -1,0 +1,348 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Custom Lampshades</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		
+			
+		<script src="vendor/three.js/Three.js"></script>
+		<script src="vendor/three.js/Detector.js"></script>
+		<script src="vendor/three.js/dat.gui.js"></script>
+		<script src="vendor/three.js/TrackballControls.js"></script>
+		<!-- https://github.com/mrdoob/stats.js -->
+		<script src="vendor/three.js/Stats.js"></script>
+
+		<script src="vendor/threex/THREEx.screenshot.js"></script>
+		<script src="vendor/threex/THREEx.FullScreen.js"></script>
+		<script src="vendor/threex/THREEx.WindowResize.js"></script>
+		<!-- <script src="vendor/threex.dragpancontrols.js"></script> -->
+
+		<link  href="css/main.css" rel="stylesheet"/>
+	</head>
+<body>
+	<!-- three.js container -->
+    	<div id="container"></div>
+    	<div id="back">
+    		<canvas id='canvas'></canvas>
+    		<img style="display:none" id="img1" onload="imageLoaded()" src="images/Floral Creeper - Black and White.jpg" />
+    		<img style="display:none" id="img2" onload="imageLoaded()" src="images/Twin Peacock Black_White.jpg" />
+    		<img style="display:none" id="img3" onload="imageLoaded()" src="images/Twin Peacock BLUE_Red_Yellow.jpg" />
+    	</div>
+	<!-- info on screen display -->
+	<div id="info">
+		<div class="bottom" id="inlineDoc" >
+			- <i>p</i> for screenshot
+		</div> 
+	</div> 
+
+	<script type="text/javascript">
+		var count = 0;
+		function imageLoaded(){
+			count++;
+			if (count === 3){
+				if( !init() )	animate();
+			}
+		};
+
+		var stats, scene, renderer, composer;
+		var camera, cameraControl,cameraContainer;
+
+		var face1="Floral Creeper - Black and White";
+		var face2="Twin Peacock Black_White";
+		var face3="Twin Peacock BLUE_Red_Yellow";
+		var topFace = "Circle Floral Creeper - Black";
+
+		var topFaceMesh,cylinderMesh;
+
+		var prestiched = false;
+		var rotate = true;
+		
+
+		// init the scene
+		function init(){
+
+			if( Detector.webgl ){
+				renderer = new THREE.WebGLRenderer({
+					antialias		: true,	// to get smoother output
+					preserveDrawingBuffer	: true	// to allow screenshot
+				});
+				renderer.setClearColor( 0x000000 );
+			}else{
+				Detector.addGetWebGLMessage();
+				return true;
+			}
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.getElementById('container').appendChild(renderer.domElement);
+
+			// add Stats.js - https://github.com/mrdoob/stats.js
+			stats = new Stats();
+			stats.domElement.style.position	= 'absolute';
+			stats.domElement.style.bottom	= '0px';
+			document.body.appendChild( stats.domElement );
+
+			// create a scene
+			scene = new THREE.Scene();
+
+			// put a camera in the scene
+			camera	= new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000 );
+			//camera = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, 0.1, 10 );
+			cameraContainer = new THREE.Object3D();
+			cameraContainer.add(camera);
+			camera.position.set(0, 2, 5);
+			scene.add(cameraContainer);
+
+			cameraControls = new THREE.TrackballControls(camera, renderer.domElement);
+				cameraControls.rotateSpeed = 5;
+				cameraControls.addEventListener("change", render);
+
+			// create a camera contol
+			//cameraControls	= new THREEx.DragPanControls(camera)
+
+			// transparently support window resize
+			THREEx.WindowResize.bind(renderer, camera);
+			// allow 'p' to make screenshot
+			//THREEx.Screenshot.bindKey(renderer);
+			// allow 'f' to go fullscreen where this feature is supported
+			if( THREEx.FullScreen.available() ){
+				THREEx.FullScreen.bindKey();		
+				document.getElementById('inlineDoc').innerHTML	+= "- <i>f</i> for fullscreen";
+			}
+
+			// here you add your objects
+			// - you will most likely replace this part by your own
+			var light	= new THREE.AmbientLight( 0xffffff );
+			scene.add( light );
+			var light	= new THREE.DirectionalLight( 0xffffff );
+			light.position.set( Math.random(), Math.random(), Math.random() ).normalize();
+			scene.add( light );
+
+			var light	= new THREE.PointLight( Math.random() * 0xffffff );
+			light.position.set( Math.random()-0.5, Math.random()-0.5, Math.random()-0.5 )
+						.normalize().multiplyScalar(1.2);
+			scene.add( light );
+
+			var light = new THREE.HemisphereLight( 0xffffff, 0xffffff, 1 );
+			scene.add( light );
+
+			var spotlight = new THREE.SpotLight(0xffffff);
+			spotlight.lookAt(0,5,0);
+
+			//spotlight.lookAt(p,q,r);
+			scene.add(spotlight);
+
+			var texture1 = THREE.ImageUtils.loadTexture("images/lamp0.jpg");
+
+			var faceArray = ["Floral Creeper - Black and White","Twin Peacock Black_White","Twin Peacock BLUE_Red_Yellow"];
+			var topArray = ["Circle Floral Creeper - Black","Circle Floral Creeper - Blue","Circle Peacock Blue","Circle Peacock BW"];
+
+			var topMaterialMap = {
+				"Circle Floral Creeper - Black" : new THREE.MeshPhongMaterial({
+					map : THREE.ImageUtils.loadTexture("images/" + "Circle Floral Creeper - Black" + ".jpg"),
+					transparent : false,
+					side : THREE.DoubleSide,
+					opacity : 0.95,
+					alphaTest: 0.5
+				}),
+				"Circle Floral Creeper - Blue" : new THREE.MeshPhongMaterial({
+					map : THREE.ImageUtils.loadTexture("images/" + "Circle Floral Creeper - Blue" + ".jpg"),
+					transparent : false,
+					side : THREE.DoubleSide,
+					opacity : 0.95,
+					alphaTest: 0.5
+				}),
+				"Circle Peacock Blue" : new THREE.MeshPhongMaterial({
+					map : THREE.ImageUtils.loadTexture("images/" + "Circle Peacock Blue" + ".jpg"),
+					transparent : false,
+					side : THREE.DoubleSide,
+					opacity : 0.95,
+					alphaTest: 0.5
+				}),
+				"Circle Peacock BW" : new THREE.MeshPhongMaterial({
+					map : THREE.ImageUtils.loadTexture("images/" + "Circle Peacock BW" + ".jpg"),
+					transparent : false,
+					side : THREE.DoubleSide,
+					opacity : 0.95,
+					alphaTest: 0.5
+				})
+			};
+
+			var sideFaceMap = {
+				"Floral Creeper - Black and White" : document.getElementById("img1"),
+				"Twin Peacock Black_White" : document.getElementById("img2"),
+				"Twin Peacock BLUE_Red_Yellow" : document.getElementById("img3")
+
+			}
+
+
+			var gui = new dat.GUI();
+
+	
+		   	var parameters = { FACE1: face1, FACE2 : face2, FACE3: face3,TOPFACE: topFace, PRESTICHED : prestiched, ROTATE: rotate};
+
+		   	gui.add(parameters, "FACE1", faceArray).name("Face 1").onFinishChange(function () {
+				face1 = parameters.FACE1;
+				loadCanvas();
+				reload();
+			});
+
+			gui.add(parameters, "FACE2", faceArray).name("Face 2").onFinishChange(function () {
+				face2 = parameters.FACE2;
+				loadCanvas();
+				reload();
+			});
+
+			gui.add(parameters, "FACE3", faceArray).name("Face 3").onFinishChange(function () {
+				face3 = parameters.FACE3;
+				loadCanvas();
+				reload();
+			});
+
+			gui.add(parameters, "TOPFACE", topArray).name("Top Face").onFinishChange(function () {
+				topFace = parameters.TOPFACE;
+				reload();
+			});
+
+			gui.add(parameters, "PRESTICHED").name("Use prestiched image").onFinishChange(function () {
+				prestiched = parameters.PRESTICHED;
+				loadCanvas();
+				reload();
+			});
+
+			gui.add(parameters, "ROTATE").name("Rotate").onFinishChange(function () {
+				rotate = parameters.ROTATE;
+			});
+			
+
+			/*var geometry	= new THREE.CubeGeometry( 2, 2, 2 );
+			
+			var mesh	= new THREE.Mesh( geometry, material ); 
+			scene.add( mesh );*/
+
+			function reload(){
+				
+				if (!topFaceMesh){
+					var radius   = 1,
+				    segments = 64,
+					geometry = new THREE.CircleGeometry( radius, segments );
+					topFaceMesh  = new THREE.Mesh( geometry, topMaterialMap[topFace] );
+					topFaceMesh.position.y = 1.25;
+					topFaceMesh.rotation.x = Math.PI/2;
+					scene.add( topFaceMesh );
+				} else {
+					topFaceMesh.material = topMaterialMap[topFace];
+				}
+
+				
+
+				
+
+				
+				if (!cylinderMesh){
+
+					var cylGeometry = new THREE.CylinderGeometry( 1, 1, 2.5, 32 ,1 , false);
+					cylinderMesh = new THREE.Mesh(cylGeometry,getMaterials());
+
+					for(var i=0; i<cylGeometry.faces.length; i++) {
+						 if(cylGeometry.faces[i].normal.y != 0) { 
+						 	cylGeometry.faces[i].materialIndex = 1;
+						 } 
+					};
+					cylinderMesh.doubleSided = true;
+					scene.add(cylinderMesh);
+				} else {
+					//var texture1 = THREE.ImageUtils.loadTexture("images/lamp0.jpg");
+					var elm = document.getElementById("canvas");
+					var texture = new THREE.Texture(elm);
+					texture.wrapS	= texture.wrapT	= THREE.RepeatWrapping;
+					texture.repeat = new THREE.Vector2( 1, 1 );
+					texture.needsUpdate = true;
+					cylinderMesh.material = getMaterials();
+				}
+				
+			}
+
+			function getMaterials(){
+					if (prestiched){
+						var texture = new THREE.ImageUtils.loadTexture('images/lamp1.jpg');
+					} else {
+						var elm = document.getElementById("canvas");
+						var texture = new THREE.Texture(elm);
+						texture.wrapS	= texture.wrapT	= THREE.RepeatWrapping;
+						texture.repeat = new THREE.Vector2( 1, 1 );
+						texture.needsUpdate = true;
+					}
+					
+					var materials	= [new THREE.MeshBasicMaterial({
+						map : texture,//texture1,
+						ambient: 0x808080,
+						//emissive : 0xffff30,
+						emissive : 0x000000,
+						transparent : false,
+						side : THREE.DoubleSide,
+						opacity : 0.95,
+						alphaTest: 0.5
+						
+						//color: Math.random() * 0xffffff
+					}),new THREE.MeshPhongMaterial({
+						ambient: 0x808080,
+						transparent : true,
+						side : THREE.DoubleSide,
+						opacity : 0,
+						alphaTest: 0.5
+						
+						//color: Math.random() * 0xffffff
+					})];
+
+					return new THREE.MeshFaceMaterial( materials );
+			}
+
+
+			function loadCanvas(){
+				var can = document.getElementById('canvas');
+				var ctx = can.getContext('2d');
+				
+				var image1 = sideFaceMap[face1];
+				var image2 = sideFaceMap[face2];
+				var image3 = sideFaceMap[face3];
+				can.width = image1.width + image2.width + image3.width;
+				can.height = image1.height;
+				ctx.clearRect(0, 0, can.width, can.height);
+				ctx.drawImage(image1, 0, 0);
+				ctx.drawImage(image2, image1.width,0);
+				ctx.drawImage(image3, image1.width + image2.width,0);
+			}
+			loadCanvas();
+			reload();
+
+
+
+
+
+
+		}
+
+		// animation loop
+		function animate() {
+			requestAnimationFrame( animate );
+			// update camera controls
+			cameraControls.update();
+			if (rotate){
+				cameraContainer.rotation.y += 0.01;
+			}
+			
+			// do the render
+			render();
+
+			// update stats
+			stats.update();
+		}
+
+		// render the scene
+		function render() {
+			// actually render the scene
+			renderer.render( scene, camera );
+		}
+	</script>
+</body>
+</html>
